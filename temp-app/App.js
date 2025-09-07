@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { motion } from 'framer-motion';
 
 // Nike-inspired Design System
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -27,20 +26,20 @@ const isTablet = screenWidth >= 768;
 const isDesktop = screenWidth >= 1024;
 
 const Colors = {
-  primary: '#000000',
+  primary: '#1DB954', // Green
   secondary: '#FFFFFF',
-  accent: '#FF6B35',
-  success: '#00C851',
-  warning: '#FFBB33',
-  error: '#FF4444',
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  text: '#000000',
-  textSecondary: '#6C757D',
-  border: '#E9ECEF',
-  shadow: 'rgba(0, 0, 0, 0.1)',
-  gradient: ['#000000', '#333333'],
-  gradientAccent: ['#FF6B35', '#FF8C42'],
+  accent: '#1ED760', // Lighter Green
+  success: '#1DB954',
+  warning: '#FFA500',
+  error: '#FF6B6B',
+  background: '#000000', // Black background
+  surface: '#000000', // Black surface
+  text: '#FFFFFF', // White text
+  textSecondary: '#CCCCCC', // Light gray text
+  border: '#1DB954', // Green borders
+  shadow: 'rgba(0, 0, 0, 0.3)',
+  gradient: ['#000000', '#1DB954'],
+  gradientAccent: ['#1DB954', '#1ED760'],
 };
 
 const Typography = {
@@ -136,28 +135,45 @@ const API = {
   
   categorizeGrievance: async (title, description) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
-    // AI categorization logic
+    // Enhanced AI categorization logic
     const keywords = (title + ' ' + description).toLowerCase();
-    let severity = 'Low';
+    let severity = 'Normal';
     let complexity = 'Low';
     let category = 'General';
     
-    if (keywords.includes('emergency') || keywords.includes('urgent') || keywords.includes('water') || keywords.includes('electricity')) {
+    // Very Important - Emergency situations
+    if (keywords.includes('emergency') || keywords.includes('urgent') || keywords.includes('fire') || 
+        keywords.includes('flood') || keywords.includes('accident') || keywords.includes('crime') ||
+        keywords.includes('gas leak') || keywords.includes('electrical hazard') || keywords.includes('structural damage')) {
       severity = 'Very Important';
       complexity = 'High';
-    } else if (keywords.includes('road') || keywords.includes('bridge') || keywords.includes('hospital')) {
+    }
+    // Important - Critical infrastructure
+    else if (keywords.includes('water') || keywords.includes('electricity') || keywords.includes('road') || 
+             keywords.includes('bridge') || keywords.includes('hospital') || keywords.includes('school') ||
+             keywords.includes('sewage') || keywords.includes('traffic') || keywords.includes('safety')) {
       severity = 'Important';
       complexity = 'Medium';
     }
+    // Normal - Regular maintenance
+    else {
+      severity = 'Normal';
+      complexity = 'Low';
+    }
     
-    if (keywords.includes('road') || keywords.includes('bridge') || keywords.includes('street')) {
+    // Category classification
+    if (keywords.includes('road') || keywords.includes('bridge') || keywords.includes('street') || keywords.includes('pothole')) {
       category = 'Infrastructure';
-    } else if (keywords.includes('water') || keywords.includes('electricity') || keywords.includes('gas')) {
+    } else if (keywords.includes('water') || keywords.includes('electricity') || keywords.includes('gas') || keywords.includes('sewage')) {
       category = 'Utilities';
-    } else if (keywords.includes('hospital') || keywords.includes('health') || keywords.includes('medical')) {
+    } else if (keywords.includes('hospital') || keywords.includes('health') || keywords.includes('medical') || keywords.includes('clinic')) {
       category = 'Health';
-    } else if (keywords.includes('school') || keywords.includes('education') || keywords.includes('college')) {
+    } else if (keywords.includes('school') || keywords.includes('education') || keywords.includes('college') || keywords.includes('university')) {
       category = 'Education';
+    } else if (keywords.includes('garbage') || keywords.includes('waste') || keywords.includes('pollution') || keywords.includes('environment')) {
+      category = 'Environment';
+    } else if (keywords.includes('crime') || keywords.includes('safety') || keywords.includes('security') || keywords.includes('police')) {
+      category = 'Public Safety';
     }
     
     return { severity, complexity, category };
@@ -281,11 +297,11 @@ const AnimatedCard = ({ children, style, delay = 0, ...props }) => {
 };
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('login');
+  const [currentScreen, setCurrentScreen] = useState('landing');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [grievances, setGrievances] = useState([]);
-  const [newGrievance, setNewGrievance] = useState({ title: '', description: '', category: 'Infrastructure' });
+  const [newGrievance, setNewGrievance] = useState({ title: '', description: '', category: 'Infrastructure', email: '' });
   const [loginData, setLoginData] = useState({ email: '', password: '', phone: '', otp: '', userType: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', password: '', phone: '', role: 'citizen', userType: '' });
   const [loginMode, setLoginMode] = useState('email'); // email, phone
@@ -295,12 +311,45 @@ export default function App() {
   const [chatHistory, setChatHistory] = useState([]);
   const [showChat, setShowChat] = useState(false);
   const [screenTransition, setScreenTransition] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [analytics, setAnalytics] = useState({
+    totalGrievances: 1247,
+    resolved: 1058,
+    pending: 89,
+    inProgress: 100,
+    resolutionRate: 84.8,
+    severityBreakdown: { Low: 45, Medium: 35, High: 20 }
+  });
+  const [feedback, setFeedback] = useState({ rating: 5, comment: '', category: 'General' });
+  const [currentRewardCategory, setCurrentRewardCategory] = useState(null);
 
   useEffect(() => {
     if (user) {
       loadGrievances();
+      loadStoredData();
     }
   }, [user]);
+
+  const loadStoredData = () => {
+    try {
+      // Load stored grievances from localStorage
+      const storedGrievances = JSON.parse(localStorage.getItem('grievances') || '[]');
+      if (storedGrievances.length > 0) {
+        setGrievances(prev => [...prev, ...storedGrievances.filter(g => !prev.find(p => p.id === g.id))]);
+      }
+      
+      // Load stored feedback from localStorage
+      const storedFeedback = JSON.parse(localStorage.getItem('feedback') || '[]');
+      console.log('Loaded stored feedback:', storedFeedback);
+    } catch (error) {
+      console.error('Error loading stored data:', error);
+    }
+  };
+
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const navigateToScreen = (screen) => {
     setScreenTransition(true);
@@ -332,7 +381,7 @@ export default function App() {
           body: JSON.stringify({
             email: loginData.email,
             password: loginData.password,
-            userType: loginData.userType
+            userType: selectedRole
           }),
         });
         
@@ -345,11 +394,12 @@ export default function App() {
           // Fallback to mock login
           const mockUser = {
             id: Date.now(),
-            name: loginData.userType === 'citizen_male' ? 'John Doe' : 
-                  loginData.userType === 'citizen_female' ? 'Jane Smith' : 'Admin User',
+            name: loginData.email ? loginData.email.split('@')[0] : 
+                  selectedRole === 'citizen' ? 'John Doe' : 
+                  selectedRole === 'woman_citizen' ? 'Jane Smith' : 'Admin User',
             email: loginData.email,
-            userType: loginData.userType,
-            role: loginData.userType === 'government' ? 'admin' : 'citizen'
+            userType: selectedRole,
+            role: selectedRole === 'official' ? 'admin' : 'citizen'
           };
           setUser(mockUser);
           setCurrentScreen('home');
@@ -365,7 +415,7 @@ export default function App() {
           body: JSON.stringify({
             phone: loginData.phone,
             otp: loginData.otp,
-            userType: loginData.userType
+            userType: selectedRole
           }),
         });
         
@@ -378,11 +428,12 @@ export default function App() {
           // Fallback to mock login
           const mockUser = {
             id: Date.now(),
-            name: loginData.userType === 'citizen_male' ? 'John Doe' : 
-                  loginData.userType === 'citizen_female' ? 'Jane Smith' : 'Admin User',
+            name: loginData.phone ? `User_${loginData.phone.slice(-4)}` : 
+                  selectedRole === 'citizen' ? 'John Doe' : 
+                  selectedRole === 'woman_citizen' ? 'Jane Smith' : 'Admin User',
             phone: loginData.phone,
-            userType: loginData.userType,
-            role: loginData.userType === 'government' ? 'admin' : 'citizen'
+            userType: selectedRole,
+            role: selectedRole === 'official' ? 'admin' : 'citizen'
           };
           setUser(mockUser);
           setCurrentScreen('home');
@@ -393,11 +444,11 @@ export default function App() {
       // Fallback to mock login
       const mockUser = {
         id: Date.now(),
-        name: loginData.userType === 'citizen_male' ? 'John Doe' : 
-              loginData.userType === 'citizen_female' ? 'Jane Smith' : 'Admin User',
+        name: selectedRole === 'citizen' ? 'John Doe' : 
+              selectedRole === 'woman_citizen' ? 'Jane Smith' : 'Admin User',
         email: loginData.email || loginData.phone,
-        userType: loginData.userType,
-        role: loginData.userType === 'government' ? 'admin' : 'citizen'
+        userType: selectedRole,
+        role: selectedRole === 'official' ? 'admin' : 'citizen'
       };
       setUser(mockUser);
       setCurrentScreen('home');
@@ -434,9 +485,43 @@ export default function App() {
     setLoading(false);
   };
 
+  const verifyOTP = async () => {
+    setLoading(true);
+    try {
+      const response = await API.verifyOTP(loginData.phone, loginData.otp);
+      if (response.success) {
+        const mockUser = {
+          id: Date.now(),
+          name: loginData.phone ? `User_${loginData.phone.slice(-4)}` : 
+                selectedRole === 'citizen' ? 'John Doe' : 
+                selectedRole === 'woman_citizen' ? 'Jane Smith' : 'Admin User',
+          phone: loginData.phone,
+          userType: selectedRole,
+          role: selectedRole === 'official' ? 'admin' : 'citizen'
+        };
+        setUser(mockUser);
+        setCurrentScreen('home');
+        Alert.alert('Success', 'OTP verified successfully!');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Invalid OTP. Please try again.');
+    }
+    setLoading(false);
+  };
+
   const submitGrievance = async () => {
     if (!newGrievance.title.trim()) {
       Alert.alert('Error', 'Please enter a title for your grievance');
+      return;
+    }
+
+    if (!newGrievance.description.trim()) {
+      Alert.alert('Error', 'Please enter a description for your grievance');
+      return;
+    }
+
+    if (newGrievance.email && !isValidEmail(newGrievance.email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -454,7 +539,8 @@ export default function App() {
         date: new Date().toISOString().split('T')[0],
         severity: categorization.severity,
         complexity: categorization.complexity,
-        category: categorization.category
+        category: categorization.category,
+        email: newGrievance.email || user?.email || 'No email provided'
       };
 
       // Try backend API first
@@ -468,15 +554,25 @@ export default function App() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Grievance stored in database:', data);
         setGrievances([data.grievance, ...grievances]);
-        setNewGrievance({ title: '', description: '', category: 'Infrastructure' });
-        Alert.alert('Success', `Grievance submitted successfully!\n\nAI Analysis:\nSeverity: ${categorization.severity}\nComplexity: ${categorization.complexity}\nCategory: ${categorization.category}`);
+        setNewGrievance({ title: '', description: '', category: 'Infrastructure', email: '' });
+        Alert.alert('Success', `Grievance submitted successfully and stored in database!\n\nAI Analysis:\nSeverity: ${categorization.severity}\nComplexity: ${categorization.complexity}\nCategory: ${categorization.category}`);
         setCurrentScreen('track');
       } else {
         // Fallback to local storage
+        const localGrievance = {
+          ...grievance,
+          storedLocally: true
+        };
+        // Store in localStorage for persistence
+        const existingGrievances = JSON.parse(localStorage.getItem('grievances') || '[]');
+        existingGrievances.push(localGrievance);
+        localStorage.setItem('grievances', JSON.stringify(existingGrievances));
+        
         setGrievances([grievance, ...grievances]);
-        setNewGrievance({ title: '', description: '', category: 'Infrastructure' });
-        Alert.alert('Success', `Grievance submitted successfully!\n\nAI Analysis:\nSeverity: ${categorization.severity}\nComplexity: ${categorization.complexity}\nCategory: ${categorization.category}`);
+        setNewGrievance({ title: '', description: '', category: 'Infrastructure', email: '' });
+        Alert.alert('Success', `Grievance submitted successfully and stored locally!\n\nAI Analysis:\nSeverity: ${categorization.severity}\nComplexity: ${categorization.complexity}\nCategory: ${categorization.category}`);
         setCurrentScreen('track');
       }
     } catch (error) {
@@ -491,11 +587,18 @@ export default function App() {
         date: new Date().toISOString().split('T')[0],
         severity: categorization.severity,
         complexity: categorization.complexity,
-        category: categorization.category
+        category: categorization.category,
+        storedLocally: true
       };
+      
+      // Store in localStorage for persistence
+      const existingGrievances = JSON.parse(localStorage.getItem('grievances') || '[]');
+      existingGrievances.push(grievance);
+      localStorage.setItem('grievances', JSON.stringify(existingGrievances));
+      
       setGrievances([grievance, ...grievances]);
       setNewGrievance({ title: '', description: '', category: 'Infrastructure' });
-      Alert.alert('Success', `Grievance submitted successfully!\n\nAI Analysis:\nSeverity: ${categorization.severity}\nComplexity: ${categorization.complexity}\nCategory: ${categorization.category}`);
+      Alert.alert('Success', `Grievance submitted successfully and stored locally!\n\nAI Analysis:\nSeverity: ${categorization.severity}\nComplexity: ${categorization.complexity}\nCategory: ${categorization.category}`);
       setCurrentScreen('track');
     }
     setLoading(false);
@@ -539,10 +642,222 @@ export default function App() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            // Clear all user data
+            setUser(null);
+            setCurrentScreen('landing');
+            setGrievances([]);
+            setChatHistory([]);
+            setNewGrievance({ title: '', description: '', category: 'Infrastructure', email: '' });
+            setLoginData({ email: '', password: '', phone: '', otp: '', userType: '' });
+            setSignupData({ name: '', email: '', password: '', phone: '', role: 'citizen', userType: '' });
+            setSelectedRole(null);
+            setShowChat(false);
+            setShowOTP(false);
+            setShowUserTypeSelection(false);
+            setScreenTransition(false);
+            setFeedback({ rating: 5, comment: '', category: 'General' });
+            setChatMessage('');
+            setLoginMode('email');
+            
+            // Clear localStorage
+            try {
+              localStorage.removeItem('user');
+              localStorage.removeItem('grievances');
+              localStorage.removeItem('feedback');
+              localStorage.removeItem('chatHistory');
+            } catch (error) {
+              console.log('Error clearing localStorage:', error);
+            }
+            
+            Alert.alert('Success', 'Logged out successfully!');
+          },
+        },
+      ]
+    );
+  };
+
+  const submitFeedback = async () => {
+    if (!feedback.comment.trim()) {
+      Alert.alert('Error', 'Please enter your feedback comment');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const feedbackData = {
+        ...feedback,
+        userId: user?.id,
+        userType: user?.userType,
+        timestamp: new Date().toISOString()
+      };
+
+      // Try backend API first
+      const response = await fetch('http://localhost:3000/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(feedbackData),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Feedback stored in database:', data);
+        Alert.alert('Success', 'Thank you for your feedback! Your input has been stored and helps us improve our services.');
+        setFeedback({ rating: 5, comment: '', category: 'General' });
+        setCurrentScreen('home');
+      } else {
+        // Fallback to local storage
+        const localFeedback = {
+          ...feedbackData,
+          id: Date.now(),
+          storedLocally: true
+        };
+        // Store in localStorage for persistence
+        const existingFeedback = JSON.parse(localStorage.getItem('feedback') || '[]');
+        existingFeedback.push(localFeedback);
+        localStorage.setItem('feedback', JSON.stringify(existingFeedback));
+        
+        Alert.alert('Success', 'Thank you for your feedback! Your input has been stored locally and helps us improve our services.');
+        setFeedback({ rating: 5, comment: '', category: 'General' });
+        setCurrentScreen('home');
+      }
+    } catch (error) {
+      // Fallback to local storage
+      const localFeedback = {
+        ...feedback,
+        userId: user?.id,
+        userType: user?.userType,
+        timestamp: new Date().toISOString(),
+        id: Date.now(),
+        storedLocally: true
+      };
+      // Store in localStorage for persistence
+      const existingFeedback = JSON.parse(localStorage.getItem('feedback') || '[]');
+      existingFeedback.push(localFeedback);
+      localStorage.setItem('feedback', JSON.stringify(existingFeedback));
+      
+      Alert.alert('Success', 'Thank you for your feedback! Your input has been stored locally and helps us improve our services.');
+      setFeedback({ rating: 5, comment: '', category: 'General' });
+      setCurrentScreen('home');
+    }
+    setLoading(false);
+  };
+
+  const renderLanding = () => (
+    <LinearGradient colors={Colors.gradient} style={styles.landingContainer}>
+      <ScrollView contentContainerStyle={styles.landingScrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Hero Section */}
+        <AnimatedCard delay={0} style={styles.heroSection}>
+          <View style={styles.heroContent}>
+            <View style={styles.logoContainer}>
+              <Ionicons name="shield-checkmark" size={isDesktop ? 100 : isTablet ? 80 : 60} color={Colors.accent} />
+            </View>
+            <Text style={[styles.heroTitle, Typography.h1]}>CITIZEN</Text>
+            <Text style={[styles.heroSubtitle, Typography.h2]}>GRIEVANCE SYSTEM</Text>
+            <Text style={[styles.heroDescription, Typography.body]}>Digital Platform for Government Services</Text>
+          </View>
+        </AnimatedCard>
+
+        {/* Role Selection */}
+        <AnimatedCard delay={200} style={styles.roleSelectionContainer}>
+          <Text style={[styles.sectionTitle, Typography.h3]}>Choose Your Role</Text>
+          
+          <View style={styles.roleGrid}>
+            <AnimatedButton
+              variant="primary"
+              style={styles.roleCard}
+              onPress={() => {
+                setSelectedRole('citizen');
+                setCurrentScreen('login');
+              }}
+            >
+              <Ionicons name="person" size={40} color={Colors.secondary} />
+              <Text style={[styles.roleTitle, Typography.h3]}>CITIZEN</Text>
+              <Text style={[styles.roleDescription, Typography.body]}>Submit grievances, track progress, earn rewards</Text>
+            </AnimatedButton>
+
+            <AnimatedButton
+              variant="primary"
+              style={styles.roleCard}
+              onPress={() => {
+                setSelectedRole('woman_citizen');
+                setCurrentScreen('login');
+              }}
+            >
+              <Ionicons name="woman" size={40} color={Colors.secondary} />
+              <Text style={[styles.roleTitle, Typography.h3]}>WOMAN CITIZEN</Text>
+              <Text style={[styles.roleDescription, Typography.body]}>Enhanced safety features, priority support</Text>
+            </AnimatedButton>
+
+            <AnimatedButton
+              variant="primary"
+              style={styles.roleCard}
+              onPress={() => {
+                setSelectedRole('official');
+                setCurrentScreen('login');
+              }}
+            >
+              <Ionicons name="business" size={40} color={Colors.secondary} />
+              <Text style={[styles.roleTitle, Typography.h3]}>OFFICIAL</Text>
+              <Text style={[styles.roleDescription, Typography.body]}>Manage grievances, analytics, assignments</Text>
+            </AnimatedButton>
+          </View>
+        </AnimatedCard>
+
+        {/* Features Section */}
+        <AnimatedCard delay={400} style={styles.featuresContainer}>
+          <Text style={[styles.sectionTitle, Typography.h3]}>Key Features</Text>
+          <View style={styles.featuresGrid}>
+            <View style={styles.featureItem}>
+              <Ionicons name="chatbubble-ellipses" size={32} color={Colors.secondary} />
+              <Text style={[styles.featureText, Typography.body]}>AI Chatbot</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="analytics" size={32} color={Colors.secondary} />
+              <Text style={[styles.featureText, Typography.body]}>Real-time Analytics</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="shield-checkmark" size={32} color={Colors.secondary} />
+              <Text style={[styles.featureText, Typography.body]}>Secure Platform</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="trophy" size={32} color={Colors.secondary} />
+              <Text style={[styles.featureText, Typography.body]}>Reward System</Text>
+            </View>
+          </View>
+        </AnimatedCard>
+      </ScrollView>
+    </LinearGradient>
+  );
+
   const renderLogin = () => (
     <LinearGradient colors={Colors.gradient} style={styles.authContainer}>
       <ScrollView contentContainerStyle={styles.authScrollContainer} showsVerticalScrollIndicator={false}>
         <AnimatedCard delay={0} style={styles.authCard}>
+          {/* Back Button */}
+          <AnimatedButton
+            variant="ghost"
+            style={styles.backButtonContainer}
+            onPress={() => setCurrentScreen('landing')}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+            <Text style={styles.backButtonText}>Back to Role Selection</Text>
+          </AnimatedButton>
+
           {/* Logo Section */}
           <View style={styles.logoSection}>
             <View style={styles.logoContainer}>
@@ -620,17 +935,23 @@ export default function App() {
                     <Text style={[styles.buttonText, Typography.h4]}>Send OTP</Text>
                   </AnimatedButton>
                 ) : (
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="keypad-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-                    <TextInput
-                      style={[styles.input, Typography.body]}
-                      placeholder="Enter OTP"
-                      placeholderTextColor={Colors.textSecondary}
-                      value={loginData.otp}
-                      onChangeText={(text) => setLoginData({...loginData, otp: text})}
-                      keyboardType="number-pad"
-                    />
-                  </View>
+                  <>
+                    <View style={styles.inputWrapper}>
+                      <Ionicons name="keypad-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, Typography.body]}
+                        placeholder="Enter OTP"
+                        placeholderTextColor={Colors.textSecondary}
+                        value={loginData.otp}
+                        onChangeText={(text) => setLoginData({...loginData, otp: text})}
+                        keyboardType="number-pad"
+                      />
+                    </View>
+                    <AnimatedButton variant="primary" onPress={verifyOTP} disabled={loading}>
+                      <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                      <Text style={[styles.buttonText, Typography.h4]}>Verify OTP</Text>
+                    </AnimatedButton>
+                  </>
                 )}
               </>
             )}
@@ -640,7 +961,7 @@ export default function App() {
           <AnimatedCard delay={600} style={styles.actionContainer}>
             <AnimatedButton
               variant="primary"
-              onPress={() => setShowUserTypeSelection(true)}
+              onPress={handleLogin}
               disabled={loading}
               style={styles.signInButton}
             >
@@ -654,7 +975,22 @@ export default function App() {
               )}
             </AnimatedButton>
 
-            <AnimatedButton variant="ghost" style={styles.googleButton}>
+            <AnimatedButton 
+              variant="ghost" 
+              style={styles.googleButton}
+              onPress={() => {
+                const mockUser = {
+                  id: Date.now(),
+                  name: 'user@gmail.com'.split('@')[0],
+                  email: 'user@gmail.com',
+                  userType: selectedRole,
+                  role: selectedRole === 'official' ? 'admin' : 'citizen'
+                };
+                setUser(mockUser);
+                setCurrentScreen('home');
+                Alert.alert('Success', 'Google login successful!');
+              }}
+            >
               <Ionicons name="logo-google" size={24} color={Colors.textSecondary} />
               <Text style={[styles.googleButtonText, Typography.body]}>Continue with Google</Text>
             </AnimatedButton>
@@ -728,13 +1064,22 @@ export default function App() {
             <Text style={[styles.welcomeText, Typography.h3]}>Welcome back,</Text>
             <Text style={[styles.userName, Typography.h2]}>{user?.name}</Text>
           </View>
-          <AnimatedButton
-            variant="ghost"
-            style={styles.chatButton}
-            onPress={() => setShowChat(true)}
-          >
-            <Ionicons name="chatbubble-ellipses" size={24} color={Colors.accent} />
-          </AnimatedButton>
+          <View style={styles.headerButtons}>
+            <AnimatedButton
+              variant="ghost"
+              style={styles.chatButton}
+              onPress={() => setShowChat(true)}
+            >
+              <Ionicons name="chatbubble-ellipses" size={24} color={Colors.accent} />
+            </AnimatedButton>
+            <AnimatedButton
+              variant="ghost"
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out" size={24} color={Colors.error} />
+            </AnimatedButton>
+          </View>
         </View>
       </AnimatedCard>
 
@@ -783,12 +1128,57 @@ export default function App() {
       {/* Action Buttons Section */}
       <AnimatedCard delay={800} style={styles.actionsSection}>
         <Text style={[styles.sectionTitle, Typography.h3]}>
-          {user?.userType === 'citizen_male' ? '👨 Male Citizen Portal' : 
-           user?.userType === 'citizen_female' ? '👩 Female Citizen Portal' : 
+          {user?.userType === 'citizen' ? '👨 Citizen Portal' : 
+           user?.userType === 'woman_citizen' ? '👩 Woman Citizen Portal' : 
            '🏛️ Government Employee Portal'}
         </Text>
         
-        {user?.userType === 'citizen_male' && (
+        {user?.userType === 'citizen' && (
+          <View style={styles.actionGrid}>
+            <AnimatedButton
+              variant="primary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('submit')}
+            >
+              <Ionicons name="create-outline" size={28} color={Colors.primary} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Submit Grievance</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Report new issues</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('track')}
+            >
+              <Ionicons name="analytics-outline" size={28} color={Colors.accent} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Track Grievances</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Monitor progress</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="ghost"
+              style={styles.actionButton}
+              onPress={() => setCurrentScreen('rewards')}
+            >
+              <Ionicons name="trophy-outline" size={28} color={Colors.warning} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>My Rewards</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>150 points</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('feedback')}
+            >
+              <Ionicons name="chatbubble-outline" size={28} color={Colors.accent} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Feedback System</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Share your experience</Text>
+            </AnimatedButton>
+          </View>
+        )}
+      </AnimatedCard>
+
+        {user?.userType === 'woman_citizen' && (
           <View style={styles.actionGrid}>
             <AnimatedButton
               variant="primary"
@@ -815,174 +1205,267 @@ export default function App() {
               style={styles.actionButton}
               onPress={async () => {
                 try {
-                  const response = await fetch(`http://localhost:3000/api/users/${user?.id}/rewards`);
+                  const response = await fetch(`http://localhost:3000/api/users/${user?.id}/safety-features`);
                   if (response.ok) {
                     const data = await response.json();
-                    Alert.alert('Rewards', `You have ${data.points} points!\n\nEarn more by:\n• Submitting grievances\n• Providing updates\n• Referring friends`);
+                    Alert.alert('Safety Features', `Women Safety Features:\n• Emergency reporting\n• Safe location sharing\n• Women-only support\n• Priority handling\n\nEmergency Contacts: ${data.emergencyContacts || '100, 101, 102'}`);
                   } else {
-                    Alert.alert('Rewards', 'You have 150 points!\n\nEarn more by:\n• Submitting grievances\n• Providing updates\n• Referring friends');
+                    Alert.alert('Safety Features', 'Women Safety Features:\n• Emergency reporting\n• Safe location sharing\n• Women-only support\n• Priority handling\n\nEmergency Contacts: 100, 101, 102');
                   }
                 } catch (error) {
-                  Alert.alert('Rewards', 'You have 150 points!\n\nEarn more by:\n• Submitting grievances\n• Providing updates\n• Referring friends');
+                  Alert.alert('Safety Features', 'Women Safety Features:\n• Emergency reporting\n• Safe location sharing\n• Women-only support\n• Priority handling\n\nEmergency Contacts: 100, 101, 102');
                 }
               }}
             >
+              <Ionicons name="shield-outline" size={28} color={Colors.success} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Safety Features</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Enhanced protection</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="ghost"
+              style={styles.actionButton}
+              onPress={() => setCurrentScreen('rewards')}
+            >
               <Ionicons name="trophy-outline" size={28} color={Colors.warning} />
               <Text style={[styles.actionButtonText, Typography.h4]}>My Rewards</Text>
-              <Text style={[styles.actionButtonSubtext, Typography.caption]}>150 points</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>200 points</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('feedback')}
+            >
+              <Ionicons name="chatbubble-outline" size={28} color={Colors.accent} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Feedback System</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Share your experience</Text>
             </AnimatedButton>
           </View>
         )}
-      </AnimatedCard>
 
-      {user?.userType === 'citizen_female' && (
-        <>
-          <Text style={styles.userTypeText}>👩 Female Citizen Portal</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('submit')}>
-            <Text style={styles.buttonText}>📝 Submit Grievance</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setCurrentScreen('track')}>
-            <Text style={styles.secondaryButtonText}>📊 Track Grievances</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={async () => {
-            try {
-              const response = await fetch(`http://localhost:3000/api/users/${user?.id}/safety-features`);
-              if (response.ok) {
-                const data = await response.json();
-                Alert.alert('Safety Features', `Women Safety Features:\n• Emergency reporting\n• Safe location sharing\n• Women-only support\n• Priority handling\n\nEmergency Contacts: ${data.emergencyContacts || '100, 101, 102'}`);
-              } else {
-                Alert.alert('Safety Features', 'Women Safety Features:\n• Emergency reporting\n• Safe location sharing\n• Women-only support\n• Priority handling\n\nEmergency Contacts: 100, 101, 102');
-              }
-            } catch (error) {
-              Alert.alert('Safety Features', 'Women Safety Features:\n• Emergency reporting\n• Safe location sharing\n• Women-only support\n• Priority handling\n\nEmergency Contacts: 100, 101, 102');
-            }
-          }}>
-            <Text style={styles.secondaryButtonText}>🛡️ Safety Features</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={async () => {
-            try {
-              const response = await fetch(`http://localhost:3000/api/users/${user?.id}/rewards`);
-              if (response.ok) {
-                const data = await response.json();
-                Alert.alert('Rewards', `You have ${data.points} points!\n\nEarn more by:\n• Submitting grievances\n• Providing updates\n• Referring friends`);
-              } else {
-                Alert.alert('Rewards', 'You have 200 points!\n\nEarn more by:\n• Submitting grievances\n• Providing updates\n• Referring friends');
-              }
-            } catch (error) {
-              Alert.alert('Rewards', 'You have 200 points!\n\nEarn more by:\n• Submitting grievances\n• Providing updates\n• Referring friends');
-            }
-          }}>
-            <Text style={styles.secondaryButtonText}>🏆 My Rewards</Text>
-          </TouchableOpacity>
-        </>
-      )}
+        {user?.userType === 'official' && (
+          <View style={styles.actionGrid}>
+            <AnimatedButton
+              variant="primary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('admin')}
+            >
+              <Ionicons name="settings-outline" size={28} color={Colors.primary} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Admin Dashboard</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Manage system</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('manage')}
+            >
+              <Ionicons name="construct-outline" size={28} color={Colors.accent} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Manage Grievances</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Handle reports</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="ghost"
+              style={styles.actionButton}
+              onPress={async () => {
+                try {
+                  // AI Model for Statistics - Using local fallback since model is not ready
+                  const mockAnalytics = {
+                    totalGrievances: 1247,
+                    pendingGrievances: 89,
+                    resolvedGrievances: 1058,
+                    inProgressGrievances: 100,
+                    resolutionRate: 84.8,
+                    averageResponseTime: '2.3 days',
+                    citizenSatisfaction: '4.2/5',
+                    departmentEfficiency: '78%',
+                    severityBreakdown: { Low: 45, Medium: 35, High: 20 },
+                    categoryBreakdown: { Infrastructure: 40, Utilities: 25, Health: 15, Education: 10, Other: 10 }
+                  };
+                  
+                  Alert.alert('📊 Government Analytics', 
+                    `📈 Performance Metrics:\n• Total Grievances: ${mockAnalytics.totalGrievances}\n• Pending: ${mockAnalytics.pendingGrievances}\n• Resolved: ${mockAnalytics.resolvedGrievances}\n• In Progress: ${mockAnalytics.inProgressGrievances}\n\n🎯 Resolution Rate: ${mockAnalytics.resolutionRate}%\n\n⏱️ Average Response Time: ${mockAnalytics.averageResponseTime}\n👥 Citizen Satisfaction: ${mockAnalytics.citizenSatisfaction}\n🏛️ Department Efficiency: ${mockAnalytics.departmentEfficiency}\n\n📊 Severity Breakdown:\n• Low: ${mockAnalytics.severityBreakdown.Low}%\n• Medium: ${mockAnalytics.severityBreakdown.Medium}%\n• High: ${mockAnalytics.severityBreakdown.High}%`);
+                } catch (error) {
+                  Alert.alert('📊 Government Analytics', 
+                    `📈 Performance Metrics:\n• Total Grievances: 1,247\n• Pending: 89\n• Resolved: 1,058\n• In Progress: 100\n\n🎯 Resolution Rate: 84.8%\n\n⏱️ Average Response Time: 2.3 days\n👥 Citizen Satisfaction: 4.2/5\n🏛️ Department Efficiency: 78%`);
+                }
+              }}
+            >
+              <Ionicons name="bar-chart-outline" size={28} color={Colors.success} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>View Analytics</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Performance insights</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="ghost"
+              style={styles.actionButton}
+              onPress={async () => {
+                try {
+                  const response = await fetch('http://localhost:3000/api/reports/generate', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: user?.id, reportType: 'monthly' }),
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    Alert.alert('Reports', `Report Generated Successfully!\n\n• Monthly performance: ${data.performance || '85%'}\n• Department efficiency: ${data.efficiency || '78%'}\n• Citizen feedback: ${data.feedback || '4.2/5'}\n• Resource allocation: ${data.resources || 'Optimal'}`);
+                  } else {
+                    Alert.alert('Reports', 'Generate Reports:\n• Monthly performance: 85%\n• Department efficiency: 78%\n• Citizen feedback: 4.2/5\n• Resource allocation: Optimal');
+                  }
+                } catch (error) {
+                  Alert.alert('Reports', 'Generate Reports:\n• Monthly performance: 85%\n• Department efficiency: 78%\n• Citizen feedback: 4.2/5\n• Resource allocation: Optimal');
+                }
+              }}
+            >
+              <Ionicons name="document-text-outline" size={28} color={Colors.warning} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Reports</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Generate insights</Text>
+            </AnimatedButton>
+            
+            <AnimatedButton
+              variant="secondary"
+              style={styles.actionButton}
+              onPress={() => navigateToScreen('feedback')}
+            >
+              <Ionicons name="chatbubble-outline" size={28} color={Colors.accent} />
+              <Text style={[styles.actionButtonText, Typography.h4]}>Feedback System</Text>
+              <Text style={[styles.actionButtonSubtext, Typography.caption]}>Share your experience</Text>
+            </AnimatedButton>
+          </View>
+        )}
 
-      {user?.userType === 'government' && (
-        <>
-          <Text style={styles.userTypeText}>🏛️ Government Employee Portal</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => setCurrentScreen('admin')}>
-            <Text style={styles.buttonText}>⚙️ Admin Dashboard</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setCurrentScreen('manage')}>
-            <Text style={styles.secondaryButtonText}>🔧 Manage Grievances</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={async () => {
-            try {
-              const response = await fetch('http://localhost:3000/api/analytics', {
-                headers: {
-                  'Authorization': `Bearer ${user?.token || 'mock-token'}`,
-                },
-              });
-              if (response.ok) {
-                const data = await response.json();
-                const analytics = data.analytics;
-                Alert.alert('📊 Government Analytics', 
-                  `📈 Performance Metrics:\n• Total Grievances: ${analytics.totalGrievances}\n• Pending: ${analytics.pendingGrievances}\n• Resolved: ${analytics.resolvedGrievances}\n• In Progress: ${analytics.inProgressGrievances}\n\n🎯 Resolution Rate: ${analytics.resolutionRate}%\n\n⏱️ Average Response Time: 2.3 days\n👥 Citizen Satisfaction: 4.2/5\n🏛️ Department Efficiency: 78%`);
-              } else {
-                Alert.alert('📊 Government Analytics', 
-                  `📈 Performance Metrics:\n• Total Grievances: 1,247\n• Pending: 89\n• Resolved: 1,058\n• In Progress: 100\n\n🎯 Resolution Rate: 84.8%\n\n⏱️ Average Response Time: 2.3 days\n👥 Citizen Satisfaction: 4.2/5\n🏛️ Department Efficiency: 78%`);
-              }
-            } catch (error) {
-              Alert.alert('📊 Government Analytics', 
-                `📈 Performance Metrics:\n• Total Grievances: 1,247\n• Pending: 89\n• Resolved: 1,058\n• In Progress: 100\n\n🎯 Resolution Rate: 84.8%\n\n⏱️ Average Response Time: 2.3 days\n👥 Citizen Satisfaction: 4.2/5\n🏛️ Department Efficiency: 78%`);
-            }
-          }}>
-            <Text style={styles.secondaryButtonText}>📈 View Analytics</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={async () => {
-            try {
-              const response = await fetch('http://localhost:3000/api/reports/generate', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId: user?.id, reportType: 'monthly' }),
-              });
-              if (response.ok) {
-                const data = await response.json();
-                Alert.alert('Reports', `Report Generated Successfully!\n\n• Monthly performance: ${data.performance || '85%'}\n• Department efficiency: ${data.efficiency || '78%'}\n• Citizen feedback: ${data.feedback || '4.2/5'}\n• Resource allocation: ${data.resources || 'Optimal'}`);
-              } else {
-                Alert.alert('Reports', 'Generate Reports:\n• Monthly performance: 85%\n• Department efficiency: 78%\n• Citizen feedback: 4.2/5\n• Resource allocation: Optimal');
-              }
-            } catch (error) {
-              Alert.alert('Reports', 'Generate Reports:\n• Monthly performance: 85%\n• Department efficiency: 78%\n• Citizen feedback: 4.2/5\n• Resource allocation: Optimal');
-            }
-          }}>
-            <Text style={styles.secondaryButtonText}>📋 Reports</Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      <TouchableOpacity style={styles.secondaryButton} onPress={() => setCurrentScreen('public')}>
-        <Text style={styles.secondaryButtonText}>🌐 Public Dashboard</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={() => {
-        setUser(null);
-        setCurrentScreen('login');
-      }}>
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </TouchableOpacity>
+      <AnimatedButton
+        variant="secondary"
+        style={styles.publicDashboardButton}
+        onPress={() => setCurrentScreen('public')}
+      >
+        <Ionicons name="globe-outline" size={24} color={Colors.primary} />
+        <Text style={[styles.publicDashboardButtonText, Typography.body]}>🌐 Public Dashboard</Text>
+      </AnimatedButton>
     </View>
   );
 
   const renderSubmit = () => (
     <View style={styles.screen}>
-      <Text style={styles.title}>📝 Submit Grievance</Text>
-      <Text style={styles.subtitle}>Report Issues in Your Area</Text>
+      {/* Header with Back Button */}
+      <View style={styles.submitHeader}>
+        <AnimatedButton
+          variant="ghost"
+          style={styles.backButtonContainer}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back</Text>
+        </AnimatedButton>
+        <Text style={[styles.title, Typography.h2]}>📝 Submit Grievance</Text>
+        <Text style={[styles.subtitle, Typography.body]}>Report Issues in Your Area</Text>
+      </View>
       
-      <TextInput
-        style={styles.input}
-        placeholder="What's the issue? (e.g., Broken street light)"
-        placeholderTextColor="#888"
-        value={newGrievance.title}
-        onChangeText={(text) => setNewGrievance({...newGrievance, title: text})}
-      />
-      
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Describe the issue in detail..."
-        placeholderTextColor="#888"
-        multiline
-        numberOfLines={4}
-        value={newGrievance.description}
-        onChangeText={(text) => setNewGrievance({...newGrievance, description: text})}
-      />
+      <ScrollView style={styles.submitContainer} showsVerticalScrollIndicator={false}>
+        <AnimatedCard delay={0} style={styles.submitCard}>
+          <View style={styles.inputSection}>
+            <Text style={[styles.inputLabel, Typography.h4]}>Issue Title *</Text>
+            <TextInput
+              style={[styles.submitInput, Typography.body]}
+              placeholder="What's the issue? (e.g., Broken street light)"
+              placeholderTextColor={Colors.textSecondary}
+              value={newGrievance.title}
+              onChangeText={(text) => setNewGrievance({...newGrievance, title: text})}
+            />
+          </View>
+          
+          <View style={styles.inputSection}>
+            <Text style={[styles.inputLabel, Typography.h4]}>Description *</Text>
+            <TextInput
+              style={[styles.submitInput, styles.submitTextArea, Typography.body]}
+              placeholder="Describe the issue in detail..."
+              placeholderTextColor={Colors.textSecondary}
+              multiline
+              numberOfLines={6}
+              value={newGrievance.description}
+              onChangeText={(text) => setNewGrievance({...newGrievance, description: text})}
+              textAlignVertical="top"
+            />
+          </View>
 
-      <TouchableOpacity style={styles.primaryButton} onPress={submitGrievance} disabled={loading}>
-        {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.buttonText}>Submit Grievance</Text>}
-      </TouchableOpacity>
+          <View style={styles.inputSection}>
+            <Text style={[styles.inputLabel, Typography.h4]}>Contact Email (Optional)</Text>
+            <TextInput
+              style={[styles.submitInput, Typography.body]}
+              placeholder="your.email@example.com"
+              placeholderTextColor={Colors.textSecondary}
+              value={newGrievance.email || ''}
+              onChangeText={(text) => setNewGrievance({...newGrievance, email: text})}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {newGrievance.email && !isValidEmail(newGrievance.email) && (
+              <Text style={styles.errorText}>Please enter a valid email address</Text>
+            )}
+          </View>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('home')}>
-        <Text style={styles.backButtonText}>← Back to Home</Text>
-      </TouchableOpacity>
+          <View style={styles.inputSection}>
+            <Text style={[styles.inputLabel, Typography.h4]}>Category</Text>
+            <View style={styles.categorySelector}>
+              {['Infrastructure', 'Utilities', 'Health', 'Education', 'Environment', 'Public Safety'].map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.categoryButton,
+                    newGrievance.category === category && styles.selectedCategoryButton
+                  ]}
+                  onPress={() => setNewGrievance({...newGrievance, category})}
+                >
+                  <Text style={[
+                    styles.categoryButtonText,
+                    newGrievance.category === category && styles.selectedCategoryButtonText
+                  ]}>
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </AnimatedCard>
+
+        <AnimatedButton
+          variant="primary"
+          style={styles.submitButton}
+          onPress={submitGrievance}
+          disabled={loading || !newGrievance.title.trim() || !newGrievance.description.trim()}
+        >
+          {loading ? (
+            <ActivityIndicator color={Colors.text} size="large" />
+          ) : (
+            <>
+              <Ionicons name="send" size={24} color={Colors.text} />
+              <Text style={[styles.submitButtonText, Typography.h4]}>Submit Grievance</Text>
+            </>
+          )}
+        </AnimatedButton>
+      </ScrollView>
     </View>
   );
 
   const renderTrack = () => (
     <View style={styles.screen}>
-      <Text style={styles.title}>📊 Track Grievances</Text>
-      <Text style={styles.subtitle}>View Status of Your Reports</Text>
+      {/* Header with Back Button */}
+      <View style={styles.submitHeader}>
+        <AnimatedButton
+          variant="ghost"
+          style={styles.backButtonContainer}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back to Home</Text>
+        </AnimatedButton>
+        <Text style={[styles.title, Typography.h2]}>📊 Track Grievances</Text>
+        <Text style={[styles.subtitle, Typography.body]}>View Status of Your Reports</Text>
+      </View>
       
       <ScrollView style={styles.grievanceList}>
         {grievances.map((grievance) => (
@@ -1008,17 +1491,24 @@ export default function App() {
           </View>
         ))}
       </ScrollView>
-
-      <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('home')}>
-        <Text style={styles.backButtonText}>← Back to Home</Text>
-      </TouchableOpacity>
     </View>
   );
 
   const renderAdmin = () => (
     <View style={styles.screen}>
-      <Text style={styles.title}>⚙️ Admin Dashboard</Text>
-      <Text style={styles.subtitle}>Government Employee Portal</Text>
+      {/* Header with Back Button */}
+      <View style={styles.submitHeader}>
+        <AnimatedButton
+          variant="ghost"
+          style={styles.backButtonContainer}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back to Home</Text>
+        </AnimatedButton>
+        <Text style={[styles.title, Typography.h2]}>⚙️ Admin Dashboard</Text>
+        <Text style={[styles.subtitle, Typography.body]}>Government Employee Portal</Text>
+      </View>
       
       <View style={styles.adminStats}>
         <View style={styles.adminCard}>
@@ -1055,8 +1545,19 @@ export default function App() {
 
   const renderManage = () => (
     <View style={styles.screen}>
-      <Text style={styles.title}>🔧 Manage Grievances</Text>
-      <Text style={styles.subtitle}>Admin Grievance Management</Text>
+      {/* Header with Back Button */}
+      <View style={styles.submitHeader}>
+        <AnimatedButton
+          variant="ghost"
+          style={styles.backButtonContainer}
+          onPress={() => setCurrentScreen('admin')}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back to Admin</Text>
+        </AnimatedButton>
+        <Text style={[styles.title, Typography.h2]}>🔧 Manage Grievances</Text>
+        <Text style={[styles.subtitle, Typography.body]}>Admin Grievance Management</Text>
+      </View>
       
       <ScrollView style={styles.grievanceList}>
         {grievances.map((grievance) => (
@@ -1137,8 +1638,19 @@ export default function App() {
 
   const renderPublic = () => (
     <View style={styles.screen}>
-      <Text style={styles.title}>🌐 Public Dashboard</Text>
-      <Text style={styles.subtitle}>Open Access Statistics & Transparency</Text>
+      {/* Header with Back Button */}
+      <View style={styles.submitHeader}>
+        <AnimatedButton
+          variant="ghost"
+          style={styles.backButtonContainer}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back to Home</Text>
+        </AnimatedButton>
+        <Text style={[styles.title, Typography.h2]}>🌐 Public Dashboard</Text>
+        <Text style={[styles.subtitle, Typography.body]}>Open Access Statistics & Transparency</Text>
+      </View>
       
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
@@ -1163,8 +1675,8 @@ export default function App() {
         <Text style={styles.secondaryButtonText}>📈 Public Statistics</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.secondaryButton} onPress={() => Alert.alert('Public Feedback', 'Public feedback system available!')}>
-        <Text style={styles.secondaryButtonText}>💬 Public Feedback</Text>
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => Alert.alert('Public Feedback', 'Public feedback system coming soon!')}>
+        <Text style={styles.secondaryButtonText}>💬 Public Feedback (Coming Soon)</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('home')}>
@@ -1212,11 +1724,322 @@ export default function App() {
     </Modal>
   );
 
+  const renderFeedback = () => (
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={[styles.title, Typography.h2]}>💬 Feedback System</Text>
+        <Text style={[styles.subtitle, Typography.body]}>Help us improve our services</Text>
+      </View>
+
+      <ScrollView style={styles.feedbackContainer} showsVerticalScrollIndicator={false}>
+        <AnimatedCard delay={0} style={styles.feedbackCard}>
+          <Text style={[styles.feedbackTitle, Typography.h3]}>Rate Your Experience</Text>
+          
+          <View style={styles.ratingContainer}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <TouchableOpacity
+                key={star}
+                onPress={() => setFeedback({...feedback, rating: star})}
+                style={styles.starButton}
+              >
+                <Ionicons
+                  name={star <= feedback.rating ? "star" : "star-outline"}
+                  size={40}
+                  color={star <= feedback.rating ? Colors.warning : Colors.border}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          <Text style={[styles.ratingText, Typography.body]}>
+            {feedback.rating === 1 ? 'Poor' :
+             feedback.rating === 2 ? 'Fair' :
+             feedback.rating === 3 ? 'Good' :
+             feedback.rating === 4 ? 'Very Good' : 'Excellent'}
+          </Text>
+        </AnimatedCard>
+
+        <AnimatedCard delay={200} style={styles.feedbackCard}>
+          <Text style={[styles.feedbackTitle, Typography.h3]}>Feedback Category</Text>
+          <View style={styles.categoryContainer}>
+            {['General', 'Service Quality', 'User Interface', 'Response Time', 'Feature Request', 'Bug Report'].map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.categoryButton,
+                  feedback.category === category && styles.selectedCategoryButton
+                ]}
+                onPress={() => setFeedback({...feedback, category})}
+              >
+                <Text style={[
+                  styles.categoryButtonText,
+                  feedback.category === category && styles.selectedCategoryButtonText
+                ]}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </AnimatedCard>
+
+        <AnimatedCard delay={400} style={styles.feedbackCard}>
+          <Text style={[styles.feedbackTitle, Typography.h3]}>Your Comments</Text>
+          <TextInput
+            style={[styles.feedbackTextArea, Typography.body]}
+            placeholder="Tell us about your experience, suggestions, or any issues you encountered..."
+            placeholderTextColor={Colors.textSecondary}
+            value={feedback.comment}
+            onChangeText={(text) => setFeedback({...feedback, comment: text})}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+          />
+        </AnimatedCard>
+
+        <AnimatedButton
+          variant="primary"
+          style={styles.submitFeedbackButton}
+          onPress={submitFeedback}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={Colors.primary} size="large" />
+          ) : (
+            <>
+              <Ionicons name="send" size={24} color={Colors.primary} />
+              <Text style={[styles.buttonText, Typography.h4]}>Submit Feedback</Text>
+            </>
+          )}
+        </AnimatedButton>
+      </ScrollView>
+    </View>
+  );
+
+  const renderRewards = () => (
+    <View style={styles.screen}>
+      {/* Header with Back Button */}
+      <View style={styles.submitHeader}>
+        <AnimatedButton
+          variant="ghost"
+          style={styles.backButtonContainer}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+          <Text style={styles.backButtonText}>Back to Home</Text>
+        </AnimatedButton>
+        <Text style={[styles.title, Typography.h2]}>🎁 My Rewards</Text>
+        <Text style={[styles.subtitle, Typography.body]}>
+          {user?.userType === 'citizen' ? 'Citizen Rewards & Benefits' :
+           user?.userType === 'woman_citizen' ? 'Woman Citizen Special Rewards' :
+           'Official Employee Benefits'}
+        </Text>
+      </View>
+      
+      <ScrollView style={styles.rewardsContainer} showsVerticalScrollIndicator={false}>
+        {/* Points Section */}
+        <AnimatedCard delay={0} style={styles.rewardsCard}>
+          <View style={styles.pointsSection}>
+            <Ionicons name="trophy" size={60} color={Colors.primary} />
+            <Text style={[styles.pointsTitle, Typography.h2]}>
+              {user?.userType === 'citizen' ? '150' :
+               user?.userType === 'woman_citizen' ? '200' : '300'} Points
+            </Text>
+            <Text style={[styles.pointsSubtitle, Typography.body]}>Available Balance</Text>
+          </View>
+        </AnimatedCard>
+
+        {/* Discounts Section */}
+        <AnimatedCard delay={200} style={styles.rewardsCard}>
+          <Text style={[styles.sectionTitle, Typography.h3]}>🏪 Store Discounts</Text>
+          <View style={styles.discountsGrid}>
+            {user?.userType === 'citizen' ? (
+              <>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Walmart</Text>
+                  <Text style={[styles.discountText, Typography.body]}>15% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: CITIZEN15</Text>
+                </View>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Target</Text>
+                  <Text style={[styles.discountText, Typography.body]}>10% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: CITIZEN10</Text>
+                </View>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Amazon</Text>
+                  <Text style={[styles.discountText, Typography.body]}>5% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: CITIZEN5</Text>
+                </View>
+              </>
+            ) : user?.userType === 'woman_citizen' ? (
+              <>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Sephora</Text>
+                  <Text style={[styles.discountText, Typography.body]}>20% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: WOMAN20</Text>
+                </View>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Victoria's Secret</Text>
+                  <Text style={[styles.discountText, Typography.body]}>25% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: WOMAN25</Text>
+                </View>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Ulta Beauty</Text>
+                  <Text style={[styles.discountText, Typography.body]}>15% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: WOMAN15</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Office Depot</Text>
+                  <Text style={[styles.discountText, Typography.body]}>30% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: OFFICIAL30</Text>
+                </View>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Staples</Text>
+                  <Text style={[styles.discountText, Typography.body]}>25% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: OFFICIAL25</Text>
+                </View>
+                <View style={styles.discountItem}>
+                  <Text style={[styles.storeName, Typography.h4]}>Best Buy</Text>
+                  <Text style={[styles.discountText, Typography.body]}>20% OFF</Text>
+                  <Text style={[styles.discountCode, Typography.caption]}>Code: OFFICIAL20</Text>
+                </View>
+              </>
+            )}
+          </View>
+        </AnimatedCard>
+
+        {/* Coupons Section */}
+        <AnimatedCard delay={400} style={styles.rewardsCard}>
+          <Text style={[styles.sectionTitle, Typography.h3]}>🎫 Digital Coupons</Text>
+          <View style={styles.couponsList}>
+            {user?.userType === 'citizen' ? (
+              <>
+                <View style={styles.couponItem}>
+                  <Ionicons name="restaurant" size={24} color={Colors.primary} />
+                  <View style={styles.couponDetails}>
+                    <Text style={[styles.couponTitle, Typography.h4]}>McDonald's</Text>
+                    <Text style={[styles.couponDesc, Typography.body]}>Free Medium Fries with any purchase</Text>
+                    <Text style={[styles.couponExpiry, Typography.caption]}>Expires: 30 days</Text>
+                  </View>
+                </View>
+                <View style={styles.couponItem}>
+                  <Ionicons name="car" size={24} color={Colors.primary} />
+                  <View style={styles.couponDetails}>
+                    <Text style={[styles.couponTitle, Typography.h4]}>Shell Gas</Text>
+                    <Text style={[styles.couponDesc, Typography.body]}>$0.10 OFF per gallon</Text>
+                    <Text style={[styles.couponExpiry, Typography.caption]}>Expires: 15 days</Text>
+                  </View>
+                </View>
+              </>
+            ) : user?.userType === 'woman_citizen' ? (
+              <>
+                <View style={styles.couponItem}>
+                  <Ionicons name="fitness" size={24} color={Colors.primary} />
+                  <View style={styles.couponDetails}>
+                    <Text style={[styles.couponTitle, Typography.h4]}>Planet Fitness</Text>
+                    <Text style={[styles.couponDesc, Typography.body]}>1 Month Free Membership</Text>
+                    <Text style={[styles.couponExpiry, Typography.caption]}>Expires: 45 days</Text>
+                  </View>
+                </View>
+                <View style={styles.couponItem}>
+                  <Ionicons name="medical" size={24} color={Colors.primary} />
+                  <View style={styles.couponDetails}>
+                    <Text style={[styles.couponTitle, Typography.h4]}>CVS Pharmacy</Text>
+                    <Text style={[styles.couponDesc, Typography.body]}>$5 OFF Health & Beauty</Text>
+                    <Text style={[styles.couponExpiry, Typography.caption]}>Expires: 20 days</Text>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.couponItem}>
+                  <Ionicons name="business" size={24} color={Colors.primary} />
+                  <View style={styles.couponDetails}>
+                    <Text style={[styles.couponTitle, Typography.h4]}>Hilton Hotels</Text>
+                    <Text style={[styles.couponDesc, Typography.body]}>20% OFF Business Travel</Text>
+                    <Text style={[styles.couponExpiry, Typography.caption]}>Expires: 60 days</Text>
+                  </View>
+                </View>
+                <View style={styles.couponItem}>
+                  <Ionicons name="airplane" size={24} color={Colors.primary} />
+                  <View style={styles.couponDetails}>
+                    <Text style={[styles.couponTitle, Typography.h4]}>Delta Airlines</Text>
+                    <Text style={[styles.couponDesc, Typography.body]}>15% OFF Government Travel</Text>
+                    <Text style={[styles.couponExpiry, Typography.caption]}>Expires: 90 days</Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+        </AnimatedCard>
+
+        {/* Special Benefits */}
+        <AnimatedCard delay={600} style={styles.rewardsCard}>
+          <Text style={[styles.sectionTitle, Typography.h3]}>⭐ Special Benefits</Text>
+          <View style={styles.benefitsList}>
+            {user?.userType === 'citizen' ? (
+              <>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="library" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Free Library Membership</Text>
+                </View>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="school" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Community Center Access</Text>
+                </View>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="bus" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Public Transport Discount</Text>
+                </View>
+              </>
+            ) : user?.userType === 'woman_citizen' ? (
+              <>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="shield" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Women's Safety App Premium</Text>
+                </View>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="medical" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Free Health Checkups</Text>
+                </View>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="school" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Skill Development Programs</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="car" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Government Vehicle Access</Text>
+                </View>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="medical" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Premium Health Insurance</Text>
+                </View>
+                <View style={styles.benefitItem}>
+                  <Ionicons name="school" size={20} color={Colors.primary} />
+                  <Text style={[styles.benefitText, Typography.body]}>Professional Development Fund</Text>
+                </View>
+              </>
+            )}
+          </View>
+        </AnimatedCard>
+      </ScrollView>
+    </View>
+  );
+
   const renderChat = () => (
     <Modal visible={showChat} animationType="slide">
       <SafeAreaView style={styles.chatContainer}>
         <View style={styles.chatHeader}>
-          <Text style={styles.chatTitle}>AI Assistant</Text>
+          <Text style={styles.chatTitle}>🤖 Gemini Pro AI Assistant</Text>
           <TouchableOpacity onPress={() => setShowChat(false)}>
             <Text style={styles.closeButton}>✕</Text>
           </TouchableOpacity>
@@ -1225,25 +2048,26 @@ export default function App() {
         <ScrollView style={styles.chatHistory}>
           {chatHistory.length === 0 && (
             <View style={styles.welcomeMessage}>
-              <Text style={styles.welcomeMessageText}>👋 Hi! I'm your AI assistant. I can help you with:</Text>
-              <Text style={styles.welcomeMessageText}>• Submitting grievances</Text>
-              <Text style={styles.welcomeMessageText}>• Tracking your reports</Text>
-              <Text style={styles.welcomeMessageText}>• Understanding the system</Text>
-              <Text style={styles.welcomeMessageText}>• Getting support</Text>
+              <Text style={styles.welcomeMessageText}>👋 Hi! I'm your Gemini Pro AI assistant. I can help you with:</Text>
+              <Text style={styles.welcomeMessageText}>• Advanced grievance analysis</Text>
+              <Text style={styles.welcomeMessageText}>• Real-time status tracking</Text>
+              <Text style={styles.welcomeMessageText}>• Smart recommendations</Text>
+              <Text style={styles.welcomeMessageText}>• Priority assessment</Text>
+              <Text style={styles.welcomeMessageText}>• Government policy insights</Text>
               
               <View style={styles.quickActions}>
                 <Text style={styles.quickActionsTitle}>Quick Actions:</Text>
-                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('How to report a problem')}>
-                  <Text style={styles.quickActionText}>How to report a problem</Text>
+                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('Analyze my grievance priority')}>
+                  <Text style={styles.quickActionText}>Analyze my grievance priority</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('Check my grievance status')}>
-                  <Text style={styles.quickActionText}>Check my grievance status</Text>
+                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('Get status update')}>
+                  <Text style={styles.quickActionText}>Get status update</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('What rewards do I get')}>
-                  <Text style={styles.quickActionText}>What rewards do I get</Text>
+                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('Suggest improvements')}>
+                  <Text style={styles.quickActionText}>Suggest improvements</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('Emergency reporting')}>
-                  <Text style={styles.quickActionText}>Emergency reporting</Text>
+                <TouchableOpacity style={styles.quickActionButton} onPress={() => setChatMessage('Emergency assistance')}>
+                  <Text style={styles.quickActionText}>Emergency assistance</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1275,17 +2099,29 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      {currentScreen === 'login' && renderLogin()}
-      {currentScreen === 'signup' && renderSignup()}
-      {currentScreen === 'home' && renderHome()}
-      {currentScreen === 'submit' && renderSubmit()}
-      {currentScreen === 'track' && renderTrack()}
-      {currentScreen === 'admin' && renderAdmin()}
-      {currentScreen === 'manage' && renderManage()}
-      {currentScreen === 'supervisor' && renderSupervisor()}
-      {currentScreen === 'public' && renderPublic()}
-      {renderUserTypeSelection()}
-      {renderChat()}
+      {screenTransition ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+          <Text style={[styles.loadingText, Typography.h4]}>Loading...</Text>
+        </View>
+      ) : (
+        <>
+          {currentScreen === 'landing' && renderLanding()}
+          {currentScreen === 'login' && renderLogin()}
+          {currentScreen === 'signup' && renderSignup()}
+          {currentScreen === 'home' && renderHome()}
+          {currentScreen === 'submit' && renderSubmit()}
+          {currentScreen === 'track' && renderTrack()}
+          {currentScreen === 'admin' && renderAdmin()}
+          {currentScreen === 'manage' && renderManage()}
+          {currentScreen === 'supervisor' && renderSupervisor()}
+          {currentScreen === 'public' && renderPublic()}
+          {currentScreen === 'feedback' && renderFeedback()}
+          {currentScreen === 'rewards' && renderRewards()}
+          {renderUserTypeSelection()}
+          {renderChat()}
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -1294,6 +2130,86 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  loadingText: {
+    color: Colors.accent,
+    marginTop: Spacing.lg,
+  },
+  
+  // Landing Page Styles
+  landingContainer: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  landingScrollContainer: {
+    flexGrow: 1,
+    padding: Spacing.lg,
+  },
+  roleSelectionContainer: {
+    marginBottom: Spacing.xl,
+  },
+  roleGrid: {
+    gap: Spacing.lg,
+  },
+  roleCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    minHeight: 160,
+    justifyContent: 'center',
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  roleTitle: {
+    color: Colors.secondary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  roleDescription: {
+    color: Colors.secondary,
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+  featuresContainer: {
+    marginBottom: Spacing.xl,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  featureItem: {
+    width: isDesktop ? '22%' : isTablet ? '45%' : '45%',
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  featureText: {
+    color: Colors.secondary,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
   },
   authContainer: {
     flex: 1,
@@ -1306,7 +2222,7 @@ const styles = StyleSheet.create({
     minHeight: screenHeight,
   },
   authCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     marginHorizontal: Spacing.md,
@@ -1315,6 +2231,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 24,
     elevation: 12,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   logoSection: {
     alignItems: 'center',
@@ -1399,7 +2317,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.primary,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1429,22 +2347,22 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   primaryButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary,
   },
   secondaryButton: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.primary,
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: Colors.primary,
   },
   ghostButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.primary,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: Colors.primary,
   },
   buttonText: {
-    color: Colors.primary,
-    fontWeight: '700',
-    letterSpacing: 1,
+    color: Colors.secondary,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   googleButton: {
     backgroundColor: Colors.surface,
@@ -1453,7 +2371,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   googleButtonText: {
-    color: Colors.textSecondary,
+    color: Colors.secondary,
     fontWeight: '600',
   },
   signInButton: {
@@ -1517,6 +2435,10 @@ const styles = StyleSheet.create({
   userName: {
     color: Colors.primary,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   chatButton: {
     width: 50,
     height: 50,
@@ -1524,6 +2446,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 2,
     borderColor: Colors.border,
+  },
+  logoutButton: {
+    width: 50,
+    height: 50,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: Colors.error,
   },
   heroSection: {
     paddingHorizontal: Spacing.lg,
@@ -1573,7 +2503,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
@@ -1582,6 +2512,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   statIcon: {
     width: 60,
@@ -1608,33 +2540,43 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   actionButton: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.primary,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.border,
-    minHeight: 120,
+    borderColor: Colors.primary,
+    minHeight: 100,
     justifyContent: 'center',
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   actionButtonText: {
-    color: Colors.primary,
+    color: Colors.secondary,
     marginTop: Spacing.sm,
     marginBottom: Spacing.xs,
     textAlign: 'center',
+    fontWeight: '600',
   },
   actionButtonSubtext: {
-    color: Colors.textSecondary,
+    color: Colors.secondary,
     textAlign: 'center',
+    fontSize: 12,
+    opacity: 0.9,
   },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   header: {
     flexDirection: 'row',
@@ -1927,7 +2869,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 25,
     marginRight: 10,
-    color: '#FFFFFF',
+    color: Colors.text,
     borderWidth: 1,
     borderColor: '#333',
   },
@@ -1957,7 +2899,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
-  modalTitle: {
+  modalTitle: {  
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -2035,5 +2977,316 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  
+  // Feedback System Styles
+  feedbackContainer: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  feedbackCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  feedbackTitle: {
+    color: Colors.primary,
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  starButton: {
+    padding: Spacing.xs,
+  },
+  ratingText: {
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    justifyContent: 'center',
+  },
+  categoryButton: {
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  selectedCategoryButton: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  categoryButtonText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  selectedCategoryButtonText: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  feedbackTextArea: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    color: Colors.text,
+  },
+  submitFeedbackButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.lg,
+  },
+  
+  // Submit Grievance Page Styles
+  submitHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    backgroundColor: Colors.background,
+  },
+  backButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  submitContainer: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  submitCard: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  inputSection: {
+    marginBottom: Spacing.lg,
+  },
+  inputLabel: {
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+    fontWeight: '600',
+  },
+  submitInput: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    color: Colors.text,
+    fontSize: 16,
+  },
+  submitTextArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 12,
+    marginTop: Spacing.xs,
+  },
+  categorySelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  categoryButton: {
+    backgroundColor: Colors.background,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  selectedCategoryButton: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  categoryButtonText: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  selectedCategoryButtonText: {
+    color: Colors.secondary,
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.xl,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonText: {
+    color: Colors.secondary,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  
+  // Public Dashboard Button Styles
+  publicDashboardButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  publicDashboardButtonText: {
+    color: Colors.secondary,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  
+  // Rewards Page Styles
+  rewardsContainer: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  rewardsCard: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  pointsSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+  },
+  pointsTitle: {
+    color: Colors.primary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  pointsSubtitle: {
+    color: Colors.textSecondary,
+  },
+  discountsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+    justifyContent: 'space-between',
+  },
+  discountItem: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    minWidth: '30%',
+    flex: 1,
+    marginHorizontal: Spacing.xs,
+  },
+  storeName: {
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  discountText: {
+    color: Colors.primary,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  discountCode: {
+    color: Colors.textSecondary,
+    fontSize: 10,
+  },
+  couponsList: {
+    gap: Spacing.md,
+  },
+  couponItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  couponDetails: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  couponTitle: {
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  couponDesc: {
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  couponExpiry: {
+    color: Colors.primary,
+    fontSize: 12,
+  },
+  benefitsList: {
+    gap: Spacing.md,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  benefitText: {
+    color: Colors.text,
+    marginLeft: Spacing.md,
+    flex: 1,
   },
 });

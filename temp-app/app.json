@@ -32,8 +32,11 @@
       "startUrl": "/",
       "display": "standalone",
       "orientation": "portrait",
-      "themeColor": "#FF6B35",
+      "themeColor": "#1DB954",
       "backgroundColor": "#000000"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
