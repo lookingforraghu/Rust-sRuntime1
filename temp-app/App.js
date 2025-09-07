@@ -20,10 +20,29 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-// Nike-inspired Design System
+// Responsive Design System - Spotify-inspired
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const isTablet = screenWidth >= 768;
 const isDesktop = screenWidth >= 1024;
+const isLandscape = screenWidth > screenHeight;
+const isSmallScreen = screenWidth < 375; // iPhone SE, small Android
+const isLargeScreen = screenWidth > 414; // iPhone Pro Max, large Android
+
+// Responsive scaling factors
+const scale = (size) => {
+  if (isSmallScreen) return size * 0.9;
+  if (isLargeScreen) return size * 1.1;
+  return size;
+};
+
+const verticalScale = (size) => {
+  if (isLandscape) return size * 0.8;
+  return size;
+};
+
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const Colors = {
   primary: '#1DB954', // Green
@@ -43,30 +62,82 @@ const Colors = {
 };
 
 const Typography = {
-  h1: { fontSize: isDesktop ? 48 : isTablet ? 40 : 32, fontWeight: '900', lineHeight: isDesktop ? 56 : isTablet ? 48 : 40 },
-  h2: { fontSize: isDesktop ? 36 : isTablet ? 32 : 28, fontWeight: '800', lineHeight: isDesktop ? 44 : isTablet ? 40 : 36 },
-  h3: { fontSize: isDesktop ? 28 : isTablet ? 24 : 22, fontWeight: '700', lineHeight: isDesktop ? 36 : isTablet ? 32 : 30 },
-  h4: { fontSize: isDesktop ? 22 : isTablet ? 20 : 18, fontWeight: '600', lineHeight: isDesktop ? 30 : isTablet ? 28 : 26 },
-  body: { fontSize: isDesktop ? 18 : isTablet ? 16 : 14, fontWeight: '400', lineHeight: isDesktop ? 26 : isTablet ? 24 : 22 },
-  caption: { fontSize: isDesktop ? 14 : isTablet ? 12 : 10, fontWeight: '400', lineHeight: isDesktop ? 20 : isTablet ? 18 : 16 },
+  h1: { 
+    fontSize: moderateScale(isDesktop ? 48 : isTablet ? 40 : 32), 
+    fontWeight: '900', 
+    lineHeight: moderateScale(isDesktop ? 56 : isTablet ? 48 : 40),
+    textAlign: 'center'
+  },
+  h2: { 
+    fontSize: moderateScale(isDesktop ? 36 : isTablet ? 32 : 28), 
+    fontWeight: '800', 
+    lineHeight: moderateScale(isDesktop ? 44 : isTablet ? 40 : 36),
+    textAlign: 'center'
+  },
+  h3: { 
+    fontSize: moderateScale(isDesktop ? 28 : isTablet ? 24 : 22), 
+    fontWeight: '700', 
+    lineHeight: moderateScale(isDesktop ? 36 : isTablet ? 32 : 30),
+    textAlign: 'center'
+  },
+  h4: { 
+    fontSize: moderateScale(isDesktop ? 22 : isTablet ? 20 : 18), 
+    fontWeight: '600', 
+    lineHeight: moderateScale(isDesktop ? 30 : isTablet ? 28 : 26),
+    textAlign: 'center'
+  },
+  body: { 
+    fontSize: moderateScale(isDesktop ? 18 : isTablet ? 16 : 14), 
+    fontWeight: '400', 
+    lineHeight: moderateScale(isDesktop ? 26 : isTablet ? 24 : 22),
+    textAlign: 'center'
+  },
+  caption: { 
+    fontSize: moderateScale(isDesktop ? 14 : isTablet ? 12 : 10), 
+    fontWeight: '400', 
+    lineHeight: moderateScale(isDesktop ? 20 : isTablet ? 18 : 16),
+    textAlign: 'center'
+  },
+  button: {
+    fontSize: moderateScale(isDesktop ? 18 : isTablet ? 16 : 14),
+    fontWeight: '600',
+    textAlign: 'center'
+  },
+  label: {
+    fontSize: moderateScale(isDesktop ? 16 : isTablet ? 14 : 12),
+    fontWeight: '500',
+    textAlign: 'left'
+  }
 };
 
 const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-  xxxl: 64,
+  xs: scale(4),
+  sm: scale(8),
+  md: scale(16),
+  lg: scale(24),
+  xl: scale(32),
+  xxl: scale(48),
+  xxxl: scale(64),
+  // Responsive spacing
+  screenPadding: scale(isLandscape ? 16 : 20),
+  sectionPadding: scale(isLandscape ? 12 : 16),
+  cardPadding: scale(isLandscape ? 12 : 16),
+  buttonPadding: scale(isLandscape ? 12 : 16),
+  inputPadding: scale(isLandscape ? 12 : 16),
 };
 
 const BorderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  sm: scale(8),
+  md: scale(12),
+  lg: scale(16),
+  xl: scale(24),
+  xxl: scale(32),
   full: 9999,
+  // Responsive border radius
+  button: scale(12),
+  card: scale(16),
+  input: scale(12),
+  modal: scale(20),
 };
 
 // Animation configurations
@@ -759,64 +830,92 @@ export default function App() {
 
   const renderLanding = () => (
     <LinearGradient colors={Colors.gradient} style={styles.landingContainer}>
-      <ScrollView contentContainerStyle={styles.landingScrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Hero Section */}
-        <AnimatedCard delay={0} style={styles.heroSection}>
-          <View style={styles.heroContent}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="shield-checkmark" size={isDesktop ? 100 : isTablet ? 80 : 60} color={Colors.accent} />
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView 
+          contentContainerStyle={styles.landingScrollContainer} 
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={false}
+        >
+          {/* Hero Section */}
+          <AnimatedCard delay={0} style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <View style={styles.logoContainer}>
+                <Ionicons 
+                  name="shield-checkmark" 
+                  size={moderateScale(isDesktop ? 100 : isTablet ? 80 : isLandscape ? 50 : 60)} 
+                  color={Colors.accent} 
+                />
+              </View>
+              <Text style={[styles.heroTitle, Typography.h1]}>CITIZEN</Text>
+              <Text style={[styles.heroSubtitle, Typography.h2]}>GRIEVANCE SYSTEM</Text>
+              <Text style={[styles.heroDescription, Typography.body]}>Digital Platform for Government Services</Text>
             </View>
-            <Text style={[styles.heroTitle, Typography.h1]}>CITIZEN</Text>
-            <Text style={[styles.heroSubtitle, Typography.h2]}>GRIEVANCE SYSTEM</Text>
-            <Text style={[styles.heroDescription, Typography.body]}>Digital Platform for Government Services</Text>
-          </View>
-        </AnimatedCard>
+          </AnimatedCard>
 
-        {/* Role Selection */}
-        <AnimatedCard delay={200} style={styles.roleSelectionContainer}>
-          <Text style={[styles.sectionTitle, Typography.h3]}>Choose Your Role</Text>
-          
-          <View style={styles.roleGrid}>
-            <AnimatedButton
-              variant="primary"
-              style={styles.roleCard}
-              onPress={() => {
-                setSelectedRole('citizen');
-                setCurrentScreen('login');
-              }}
-            >
-              <Ionicons name="person" size={40} color={Colors.secondary} />
-              <Text style={[styles.roleTitle, Typography.h3]}>CITIZEN</Text>
-              <Text style={[styles.roleDescription, Typography.body]}>Submit grievances, track progress, earn rewards</Text>
-            </AnimatedButton>
+          {/* Role Selection */}
+          <AnimatedCard delay={200} style={styles.roleSelectionContainer}>
+            <Text style={[styles.sectionTitle, Typography.h3]}>Choose Your Role</Text>
+            
+            <View style={styles.roleGrid}>
+              <AnimatedButton
+                variant="primary"
+                style={styles.roleCard}
+                onPress={() => {
+                  setSelectedRole('citizen');
+                  setCurrentScreen('login');
+                }}
+              >
+                <View style={styles.roleIconContainer}>
+                  <Ionicons 
+                    name="person" 
+                    size={moderateScale(isLandscape ? 32 : 40)} 
+                    color={Colors.secondary} 
+                  />
+                </View>
+                <Text style={[styles.roleTitle, Typography.h4]}>CITIZEN</Text>
+                <Text style={[styles.roleDescription, Typography.caption]}>Submit grievances, track progress, earn rewards</Text>
+              </AnimatedButton>
 
-            <AnimatedButton
-              variant="primary"
-              style={styles.roleCard}
-              onPress={() => {
-                setSelectedRole('woman_citizen');
-                setCurrentScreen('login');
-              }}
-            >
-              <Ionicons name="woman" size={40} color={Colors.secondary} />
-              <Text style={[styles.roleTitle, Typography.h3]}>WOMAN CITIZEN</Text>
-              <Text style={[styles.roleDescription, Typography.body]}>Enhanced safety features, priority support</Text>
-            </AnimatedButton>
+              <AnimatedButton
+                variant="primary"
+                style={styles.roleCard}
+                onPress={() => {
+                  setSelectedRole('woman_citizen');
+                  setCurrentScreen('login');
+                }}
+              >
+                <View style={styles.roleIconContainer}>
+                  <Ionicons 
+                    name="woman" 
+                    size={moderateScale(isLandscape ? 32 : 40)} 
+                    color={Colors.secondary} 
+                  />
+                </View>
+                <Text style={[styles.roleTitle, Typography.h4]}>WOMAN CITIZEN</Text>
+                <Text style={[styles.roleDescription, Typography.caption]}>Enhanced safety features, priority support</Text>
+              </AnimatedButton>
 
-            <AnimatedButton
-              variant="primary"
-              style={styles.roleCard}
-              onPress={() => {
-                setSelectedRole('official');
-                setCurrentScreen('login');
-              }}
-            >
-              <Ionicons name="business" size={40} color={Colors.secondary} />
-              <Text style={[styles.roleTitle, Typography.h3]}>OFFICIAL</Text>
-              <Text style={[styles.roleDescription, Typography.body]}>Manage grievances, analytics, assignments</Text>
-            </AnimatedButton>
-          </View>
-        </AnimatedCard>
+              <AnimatedButton
+                variant="primary"
+                style={styles.roleCard}
+                onPress={() => {
+                  setSelectedRole('official');
+                  setCurrentScreen('login');
+                }}
+              >
+                <View style={styles.roleIconContainer}>
+                  <Ionicons 
+                    name="business" 
+                    size={moderateScale(isLandscape ? 32 : 40)} 
+                    color={Colors.secondary} 
+                  />
+                </View>
+                <Text style={[styles.roleTitle, Typography.h4]}>OFFICIAL</Text>
+                <Text style={[styles.roleDescription, Typography.caption]}>Manage grievances, analytics, assignments</Text>
+              </AnimatedButton>
+            </View>
+          </AnimatedCard>
 
         {/* Features Section */}
         <AnimatedCard delay={400} style={styles.featuresContainer}>
@@ -840,7 +939,8 @@ export default function App() {
             </View>
           </View>
         </AnimatedCard>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 
@@ -1056,46 +1156,63 @@ export default function App() {
   );
 
   const renderHome = () => (
-    <View style={styles.screen}>
-      {/* Header Section */}
-      <AnimatedCard delay={0} style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.welcomeSection}>
-            <Text style={[styles.welcomeText, Typography.h3]}>Welcome back,</Text>
-            <Text style={[styles.userName, Typography.h2]}>{user?.name}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView 
+        contentContainerStyle={styles.homeScrollContainer}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {/* Header Section */}
+        <AnimatedCard delay={0} style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.welcomeSection}>
+              <Text style={[styles.welcomeText, Typography.h4]}>Welcome back,</Text>
+              <Text style={[styles.userName, Typography.h3]}>{user?.name}</Text>
+            </View>
+            <View style={styles.headerButtons}>
+              <AnimatedButton
+                variant="ghost"
+                style={styles.chatButton}
+                onPress={() => setShowChat(true)}
+              >
+                <Ionicons 
+                  name="chatbubble-ellipses" 
+                  size={moderateScale(isLandscape ? 20 : 24)} 
+                  color={Colors.accent} 
+                />
+              </AnimatedButton>
+              <AnimatedButton
+                variant="ghost"
+                style={styles.logoutButton}
+                onPress={handleLogout}
+              >
+                <Ionicons 
+                  name="log-out" 
+                  size={moderateScale(isLandscape ? 20 : 24)} 
+                  color={Colors.error} 
+                />
+              </AnimatedButton>
+            </View>
           </View>
-          <View style={styles.headerButtons}>
-            <AnimatedButton
-              variant="ghost"
-              style={styles.chatButton}
-              onPress={() => setShowChat(true)}
-            >
-              <Ionicons name="chatbubble-ellipses" size={24} color={Colors.accent} />
-            </AnimatedButton>
-            <AnimatedButton
-              variant="ghost"
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              <Ionicons name="log-out" size={24} color={Colors.error} />
-            </AnimatedButton>
-          </View>
-        </View>
-      </AnimatedCard>
+        </AnimatedCard>
 
-      {/* Hero Section */}
-      <AnimatedCard delay={200} style={styles.heroSection}>
-        <LinearGradient colors={Colors.gradientAccent} style={styles.heroCard}>
-          <View style={styles.heroContent}>
-            <Text style={[styles.heroTitle, Typography.h1]}>CITIZEN</Text>
-            <Text style={[styles.heroSubtitle, Typography.h2]}>GRIEVANCE SYSTEM</Text>
-            <Text style={[styles.heroDescription, Typography.body]}>Digital Platform for Government Services</Text>
-          </View>
-          <View style={styles.heroIcon}>
-            <Ionicons name="shield-checkmark" size={isDesktop ? 120 : isTablet ? 80 : 60} color={Colors.secondary} />
-          </View>
-        </LinearGradient>
-      </AnimatedCard>
+        {/* Hero Section */}
+        <AnimatedCard delay={200} style={styles.heroSection}>
+          <LinearGradient colors={Colors.gradientAccent} style={styles.heroCard}>
+            <View style={styles.heroContent}>
+              <Text style={[styles.heroTitle, Typography.h2]}>CITIZEN</Text>
+              <Text style={[styles.heroSubtitle, Typography.h3]}>GRIEVANCE SYSTEM</Text>
+              <Text style={[styles.heroDescription, Typography.body]}>Digital Platform for Government Services</Text>
+            </View>
+            <View style={styles.heroIcon}>
+              <Ionicons 
+                name="shield-checkmark" 
+                size={moderateScale(isDesktop ? 120 : isTablet ? 80 : isLandscape ? 50 : 60)} 
+                color={Colors.secondary} 
+              />
+            </View>
+          </LinearGradient>
+        </AnimatedCard>
       
       {/* Stats Section */}
       <AnimatedCard delay={400} style={styles.statsSection}>
@@ -1338,15 +1455,16 @@ export default function App() {
           </View>
         )}
 
-      <AnimatedButton
-        variant="secondary"
-        style={styles.publicDashboardButton}
-        onPress={() => setCurrentScreen('public')}
-      >
-        <Ionicons name="globe-outline" size={24} color={Colors.primary} />
-        <Text style={[styles.publicDashboardButtonText, Typography.body]}>🌐 Public Dashboard</Text>
-      </AnimatedButton>
-    </View>
+        <AnimatedButton
+          variant="secondary"
+          style={styles.publicDashboardButton}
+          onPress={() => setCurrentScreen('public')}
+        >
+          <Ionicons name="globe-outline" size={24} color={Colors.primary} />
+          <Text style={[styles.publicDashboardButtonText, Typography.body]}>🌐 Public Dashboard</Text>
+        </AnimatedButton>
+      </ScrollView>
+    </SafeAreaView>
   );
 
   const renderSubmit = () => (
@@ -2127,6 +2245,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  // Base responsive styles
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -2142,27 +2265,66 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   
-  // Landing Page Styles
+  // Landing Page Styles - Responsive
   landingContainer: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.background,
   },
   landingScrollContainer: {
     flexGrow: 1,
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.sectionPadding,
+    paddingBottom: Spacing.xxxl, // Extra padding for scroll
   },
+  // Hero Section - Responsive
+  heroSection: {
+    marginBottom: Spacing.xl,
+    alignItems: 'center',
+  },
+  heroContent: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  logoContainer: {
+    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
+    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  heroTitle: {
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+  },
+  heroSubtitle: {
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  heroDescription: {
+    color: Colors.textSecondary,
+    opacity: 0.8,
+  },
+  
+  // Role Selection - Responsive
   roleSelectionContainer: {
     marginBottom: Spacing.xl,
   },
+  sectionTitle: {
+    color: Colors.text,
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
   roleGrid: {
     gap: Spacing.lg,
+    paddingHorizontal: isLandscape ? Spacing.sm : 0,
   },
   roleCard: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.cardPadding,
     alignItems: 'center',
-    minHeight: 160,
+    minHeight: verticalScale(isLandscape ? 120 : 160),
     justifyContent: 'center',
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -2171,33 +2333,45 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 2,
     borderColor: Colors.primary,
+    marginHorizontal: isLandscape ? Spacing.sm : 0,
+  },
+  roleIconContainer: {
+    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: BorderRadius.full,
   },
   roleTitle: {
     color: Colors.secondary,
-    marginTop: Spacing.md,
     marginBottom: Spacing.sm,
     textAlign: 'center',
+    fontWeight: '700',
   },
   roleDescription: {
     color: Colors.secondary,
     textAlign: 'center',
     opacity: 0.9,
+    lineHeight: moderateScale(18),
   },
+  // Features Section - Responsive
   featuresContainer: {
     marginBottom: Spacing.xl,
   },
   featuresGrid: {
-    flexDirection: 'row',
+    flexDirection: isLandscape ? 'row' : 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: Spacing.md,
+    paddingHorizontal: isLandscape ? Spacing.sm : 0,
   },
   featureItem: {
-    width: isDesktop ? '22%' : isTablet ? '45%' : '45%',
+    width: isLandscape ? '30%' : isDesktop ? '22%' : isTablet ? '45%' : '45%',
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.cardPadding,
     alignItems: 'center',
+    minHeight: verticalScale(isLandscape ? 80 : 100),
+    justifyContent: 'center',
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -2313,8 +2487,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.input,
+    paddingHorizontal: Spacing.inputPadding,
     marginBottom: Spacing.lg,
     borderWidth: 2,
     borderColor: Colors.primary,
@@ -2323,6 +2497,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    minHeight: verticalScale(isLandscape ? 50 : 60),
   },
   inputIcon: {
     marginRight: Spacing.md,
@@ -2330,18 +2505,20 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: Colors.text,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.buttonPadding,
+    fontSize: moderateScale(16),
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.buttonPadding,
     paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.button,
     gap: Spacing.sm,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
+    minHeight: verticalScale(isLandscape ? 50 : 60),
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
@@ -3288,5 +3465,198 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginLeft: Spacing.md,
     flex: 1,
+  },
+  
+  // Additional Responsive Styles
+  primaryButton: {
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  ghostButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  
+  // Responsive button variants
+  smallButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    minHeight: verticalScale(40),
+  },
+  largeButton: {
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xxl,
+    minHeight: verticalScale(70),
+  },
+  
+  buttonText: {
+    color: Colors.text,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    fontSize: moderateScale(16),
+    textAlign: 'center',
+  },
+  primaryButtonText: {
+    color: Colors.secondary,
+  },
+  secondaryButtonText: {
+    color: Colors.primary,
+  },
+  ghostButtonText: {
+    color: Colors.textSecondary,
+  },
+  
+  // Back button styles
+  backButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.screenPadding,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.button,
+    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  backButtonText: {
+    color: Colors.primary,
+    marginLeft: Spacing.sm,
+    fontSize: moderateScale(14),
+    fontWeight: '500',
+  },
+  
+  // Responsive card styles
+  card: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.cardPadding,
+    marginBottom: Spacing.lg,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    marginHorizontal: Spacing.screenPadding,
+  },
+  
+  // Responsive grid layouts
+  gridContainer: {
+    flexDirection: isLandscape ? 'row' : 'column',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  gridItem: {
+    width: isLandscape ? '48%' : '100%',
+    marginBottom: Spacing.md,
+  },
+  
+  // Responsive text styles
+  responsiveText: {
+    fontSize: moderateScale(16),
+    lineHeight: moderateScale(24),
+    color: Colors.text,
+  },
+  responsiveTitle: {
+    fontSize: moderateScale(24),
+    lineHeight: moderateScale(32),
+    color: Colors.text,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  
+  // Home Screen Responsive Styles
+  homeScrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.sectionPadding,
+    paddingBottom: Spacing.xxxl,
+  },
+  header: {
+    marginBottom: Spacing.lg,
+  },
+  headerContent: {
+    flexDirection: isLandscape ? 'row' : 'column',
+    justifyContent: 'space-between',
+    alignItems: isLandscape ? 'center' : 'flex-start',
+    paddingHorizontal: Spacing.screenPadding,
+    paddingVertical: Spacing.sectionPadding,
+  },
+  welcomeSection: {
+    flex: 1,
+    marginBottom: isLandscape ? 0 : Spacing.md,
+  },
+  welcomeText: {
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  userName: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  chatButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.button,
+    backgroundColor: 'rgba(29, 185, 84, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  logoutButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.button,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  
+  // Hero Section Responsive
+  heroSection: {
+    marginBottom: Spacing.xl,
+  },
+  heroCard: {
+    borderRadius: BorderRadius.card,
+    padding: Spacing.cardPadding,
+    flexDirection: isLandscape ? 'row' : 'column',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: verticalScale(isLandscape ? 120 : 180),
+  },
+  heroContent: {
+    flex: 1,
+    alignItems: isLandscape ? 'flex-start' : 'center',
+    marginBottom: isLandscape ? 0 : Spacing.lg,
+  },
+  heroTitle: {
+    color: Colors.secondary,
+    marginBottom: Spacing.sm,
+  },
+  heroSubtitle: {
+    color: Colors.secondary,
+    marginBottom: Spacing.md,
+  },
+  heroDescription: {
+    color: Colors.secondary,
+    opacity: 0.9,
+  },
+  heroIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
