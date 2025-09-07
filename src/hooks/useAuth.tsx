@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS, USER_ROLES } from '../constants';
-import { authService } from '../services/authService';
+import { authAPI } from '../services/apiService';
 
 interface User {
   id: string;
@@ -68,8 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = await AsyncStorage.getItem(STORAGE_KEYS.USER_TOKEN);
       
       if (token) {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
+        const response = await authAPI.getMe();
+        setUser(response.data.user);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await authService.login(email, password);
+      const response = await authAPI.login(email, password);
       
       await AsyncStorage.setItem(STORAGE_KEYS.USER_TOKEN, response.token);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.user));
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: RegisterData) => {
     try {
       setIsLoading(true);
-      const response = await authService.register(userData);
+      const response = await authAPI.register(userData);
       
       await AsyncStorage.setItem(STORAGE_KEYS.USER_TOKEN, response.token);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.user));
@@ -127,9 +127,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) throw new Error('No user logged in');
       
-      const updatedUser = await authService.updateProfile(user.id, userData);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      const response = await authAPI.updateProfile(userData);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+      setUser(response.data.user);
     } catch (error) {
       console.error('Profile update failed:', error);
       throw error;
@@ -140,9 +140,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) return;
       
-      const userData = await authService.getCurrentUser();
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
-      setUser(userData);
+      const response = await authAPI.getMe();
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+      setUser(response.data.user);
     } catch (error) {
       console.error('User refresh failed:', error);
     }

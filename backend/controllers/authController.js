@@ -194,14 +194,14 @@ const logout = async (req, res, next) => {
 // @access  Private
 const getMe = async (req, res, next) => {
   try {
-  const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('-password');
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      user
-    }
-  });
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user
+      }
+    });
   } catch (error) {
     next(error);
   }

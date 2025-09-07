@@ -153,9 +153,15 @@ const connectDB = async () => {
       useUnifiedTopology: true,
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    return conn;
   } catch (error) {
     console.error('Database connection error:', error);
-    process.exit(1);
+    // Don't exit in development, just log the error
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
+    console.log('Continuing without database connection...');
+    return null;
   }
 };
 
