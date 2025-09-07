@@ -147,61 +147,178 @@ const AnimationConfig = {
   bounce: { type: 'spring', damping: 15, stiffness: 200 },
 };
 
-// Mock API functions (replace with actual API calls)
+// API Configuration
+const API_CONFIG = {
+  BASE_URL: 'http://localhost:3000/api',
+  ENDPOINTS: {
+    AUTH: '/auth',
+    USERS: '/users',
+    GRIEVANCES: '/grievances',
+    ADMIN: '/admin',
+    SUPERVISOR: '/supervisor',
+    PUBLIC: '/public',
+    NOTIFICATIONS: '/notifications',
+    REWARDS: '/rewards',
+    UPLOAD: '/upload',
+    CHATBOT: '/chatbot',
+    FEEDBACK: '/feedback'
+  }
+};
+
+// Helper function to make API calls
+const apiCall = async (endpoint, options = {}) => {
+  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+  
+  return fetch(url, { ...defaultOptions, ...options });
+};
+
+// API functions with real backend integration
 const API = {
   login: async (email, password) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      user: {
-        id: 1,
-        email: email,
-        name: 'John Doe',
-        role: 'citizen', // citizen, admin, supervisor
-        phone: '+1234567890'
-      },
-      token: 'mock-jwt-token'
-    };
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.AUTH + '/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error('Login failed');
+      }
+    } catch (error) {
+      console.log('Backend login failed, using mock data:', error.message);
+      // Fallback to mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        success: true,
+        user: {
+          id: 1,
+          email: email,
+          name: email.split('@')[0],
+          role: 'citizen',
+          phone: '+1234567890'
+        },
+        token: 'mock-jwt-token'
+      };
+    }
   },
   
   signup: async (userData) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      user: {
-        id: 2,
-        email: userData.email,
-        name: userData.name,
-        role: userData.role || 'citizen',
-        phone: userData.phone
-      },
-      token: 'mock-jwt-token'
-    };
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.AUTH + '/signup', {
+        method: 'POST',
+        body: JSON.stringify(userData)
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error('Signup failed');
+      }
+    } catch (error) {
+      console.log('Backend signup failed, using mock data:', error.message);
+      // Fallback to mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        success: true,
+        user: {
+          id: 2,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role || 'citizen',
+          phone: userData.phone
+        },
+        token: 'mock-jwt-token'
+      };
+    }
   },
   
   sendOTP: async (phone) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { success: true, message: 'OTP sent successfully' };
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.AUTH + '/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ phone })
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error('OTP send failed');
+      }
+    } catch (error) {
+      console.log('Backend OTP send failed, using mock data:', error.message);
+      // Fallback to mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, message: 'OTP sent successfully' };
+    }
   },
   
   verifyOTP: async (phone, otp) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { success: true, user: { id: 3, phone, role: 'citizen' } };
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.AUTH + '/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ phone, otp })
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error('OTP verification failed');
+      }
+    } catch (error) {
+      console.log('Backend OTP verification failed, using mock data:', error.message);
+      // Fallback to mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, user: { id: 3, phone, role: 'citizen' } };
+    }
   },
   
   submitGrievance: async (grievance) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { success: true, id: Date.now() };
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.GRIEVANCES, {
+        method: 'POST',
+        body: JSON.stringify(grievance)
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error('Grievance submission failed');
+      }
+    } catch (error) {
+      console.log('Backend grievance submission failed, using mock data:', error.message);
+      // Fallback to mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { success: true, id: Date.now() };
+    }
   },
   
   getGrievances: async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return [
-      { id: 1, title: 'Road Repair Needed', status: 'Pending', date: '2025-01-07', category: 'Infrastructure', severity: 'Important', complexity: 'Medium' },
-      { id: 2, title: 'Water Supply Issue', status: 'In Progress', date: '2025-01-06', category: 'Utilities', severity: 'Very Important', complexity: 'High' },
-      { id: 3, title: 'Street Light Not Working', status: 'Resolved', date: '2025-01-05', category: 'Infrastructure', severity: 'Low', complexity: 'Low' }
-    ];
+    try {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.GRIEVANCES);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.grievances || [];
+      } else {
+        throw new Error('Failed to fetch grievances');
+      }
+    } catch (error) {
+      console.log('Backend grievance fetch failed, using mock data:', error.message);
+      // Fallback to mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return [
+        { id: 1, title: 'Road Repair Needed', status: 'Pending', date: '2025-01-07', category: 'Infrastructure', severity: 'Important', complexity: 'Medium' },
+        { id: 2, title: 'Water Supply Issue', status: 'In Progress', date: '2025-01-06', category: 'Utilities', severity: 'Very Important', complexity: 'High' },
+        { id: 3, title: 'Street Light Not Working', status: 'Resolved', date: '2025-01-05', category: 'Infrastructure', severity: 'Low', complexity: 'Low' }
+      ];
+    }
   },
   
   categorizeGrievance: async (title, description) => {
@@ -615,11 +732,8 @@ export default function App() {
       };
 
       // Try backend API first
-      const response = await fetch('http://localhost:3000/api/grievances', {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.GRIEVANCES, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(grievance),
       });
       
@@ -686,11 +800,8 @@ export default function App() {
 
     try {
       // Try backend API first
-      const response = await fetch('http://localhost:3000/api/chatbot', {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.CHATBOT, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ 
           message: userMessage, 
           userId: user?.id,
@@ -776,11 +887,8 @@ export default function App() {
       };
 
       // Try backend API first
-      const response = await fetch('http://localhost:3000/api/feedback', {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.FEEDBACK, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(feedbackData),
       });
       

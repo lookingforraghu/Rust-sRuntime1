@@ -49,10 +49,18 @@ const io = new Server(server, {
 
 // Security middleware
 app.use(helmet());
+
+// CORS configuration for frontend
+const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:19006",
-  credentials: true
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true); // allow non-browser tools
+    if(allowedOrigins.indexOf(origin) !== -1) callback(null, true);
+    else callback(new Error('CORS not allowed'));
+  },
+  credentials: true,
 }));
+app.options('*', cors()); // enable preflight for all routes
 
 // Rate limiting
 const limiter = rateLimit({
@@ -118,6 +126,37 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
   });
+});
+
+// Frontend integration endpoints
+app.get('/api/hello', (req, res) => {
+  res.status(200).json({
+    message: "Hello from backend 👋"
+  });
+});
+
+app.post('/api/summarize', (req, res) => {
+  try {
+    const { text } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({
+        error: 'Text is required'
+      });
+    }
+    
+    // For now, return a fake summary
+    const fakeSummary = `This is a fake summary of: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`;
+    
+    res.status(200).json({
+      summary: fakeSummary
+    });
+  } catch (error) {
+    console.error('Summarize error:', error);
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
 });
 
 // API routes
